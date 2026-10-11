@@ -1,27 +1,20 @@
-import { gql } from "@apollo/client"
 import { useMutation } from "@apollo/client/react"
 import { useState } from "react"
+import { ALL_AUTHORS, EDIT_BORN_YEAR } from "../queries"
 
-const EDIT_BORN_YEAR = gql`
-  mutation editAuthor($author: String!, $setBornTo: Int!) {
-    editAuthor(author: $author, setBornTo: $setBornTo) {
-      name
-      born
-      id
-    }
-  }
-`
 
 const BirthYearForm = ({ authors }) => {
   const [name, setName] = useState("")
   const [born, setBorn] = useState("")
 
-  const [editBornYear] = useMutation(EDIT_BORN_YEAR)
+  const [editBornYear] = useMutation(EDIT_BORN_YEAR, {
+    refetchQueries: [{ query: ALL_AUTHORS }]
+  })
 
   const submit = (event) => {
     event.preventDefault()
     editBornYear({
-      variables: { author: name, setBornTo: Number.parseInt(born) },
+      variables: { name, setBornTo: Number.parseInt(born) },
       onCompleted: (data) => {
         console.log(data)
       },
@@ -34,9 +27,9 @@ const BirthYearForm = ({ authors }) => {
         <div>
           <label>
             name
-            <select onChange={({ target }) => setName(target.value)}>
+            <select name="name" onChange={({ target }) => setName(target.value)}>
               {authors.map((a) => (
-                <option key={a.id}>{a.name}</option>
+                <option key={a.id} value={a.name}>{a.name}</option>
               ))}
             </select>
           </label>

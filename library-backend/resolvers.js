@@ -88,7 +88,7 @@ let books = [
     genres: ["classic", "crime"],
   },
   {
-    title: "Demons",
+    title: "  ",
     published: 1872,
     author: "Fyodor Dostoevsky",
     id: "afa5de04-344d-11e9-a414-719c6709cf3e",
@@ -102,7 +102,6 @@ const resolvers = {
     authorCount: async () => await Author.countDocuments(),
     allBooks: async (root, args) => {
       const books = await Book.find({}).populate("author")
-
       if (!args.genre && !args.author) {
         return books
       }
