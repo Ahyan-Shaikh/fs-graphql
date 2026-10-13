@@ -1,9 +1,13 @@
 const { GraphQLError } = require("graphql/error")
+const { PubSub } = require("graphql-subscriptions")
 const Book = require("./models/book")
 const Author = require("./models/author")
 const User = require("./models/user")
 
 const jwt = require("jsonwebtoken")
+const book = require("./models/book")
+const pubsub = new PubSub()
+
 let authors = [
   {
     name: "Robert Martin",
@@ -88,7 +92,7 @@ let books = [
     genres: ["classic", "crime"],
   },
   {
-    title: "  ",
+    title: "",
     published: 1872,
     author: "Fyodor Dostoevsky",
     id: "afa5de04-344d-11e9-a414-719c6709cf3e",
@@ -100,6 +104,7 @@ const resolvers = {
   Query: {
     bookCount: async () => await Book.countDocuments(),
     authorCount: async () => await Author.countDocuments(),
+
     allBooks: async (root, args) => {
       const books = await Book.find({}).populate("author")
       if (!args.genre && !args.author) {
@@ -108,38 +113,36 @@ const resolvers = {
 
       // only returns books by genre as author is not defined
       if (!args.author) {
-        // return books.filter((b) => b.genres.includes(args.genre))
-        return await Book.find({ genres: args.genre })
+        return books.filter((b) => b.genres.includes(args.genre))
       }
+  
       // only returns books by authors as genre is not defined
       if (!args.genre) {
         return books.filter((b) => b.author.name === args.author)
       }
+  
       // returns books by authors with a genre if only exists
-      return books.filter((b) => {
-        if (b.author.name === args.author) {
-          return b.genres.includes(args.genre)
-        }
-      })
+      return books.filter(b => b.author.name === args.author && b.genres.includes(args.genre))
     },
-    allAuthors: async () => await Author.find({}),
+    allAuthors: async () => {
+      return await Author.find({})
+    },
     me: async (root, args, context) => {
       return await User.findOne({ _id: context.currentUser })
     },
   },
 
-  // Author: {
-  //   bookCount: async (root) => {
-  //     const books = await Book.find({}).populate("author")
-  //     const byAuthor = books.filter((b) => b.author.name === root.name)
-  //     return byAuthor.length
-  //   },
-  // },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterableIterator(['BOOK_ADDED']) 
+    }
+  },
 
   Book: {
     author: async (root) => {
       const author = await Author.findOne({ _id: root.author._id })
       return {
+        bookCount: author.bookCount,
         name: author.name,
         born: author.born,
         id: author.id,
@@ -173,6 +176,7 @@ const resolvers = {
 
       if (author) {
         newBook.author = author._id
+        author.bookCount = author.bookCount + 1
         try {
           await newBook.save()
         } catch (error) {
@@ -186,6 +190,7 @@ const resolvers = {
       } else {
         const newAuthor = new Author({ name: args.author })
         try {
+          newAuthor.bookCount = 1
           await newAuthor.save()
 
           newBook.author = newAuthor._id
@@ -199,6 +204,8 @@ const resolvers = {
           )
         }
       }
+      
+      pubsub.publish("BOOK_ADDED", { bookAdded: newBook })
       return newBook
     },
 

@@ -1,19 +1,35 @@
 import { useQuery } from "@apollo/client/react"
-import { useState } from "react"
-import { ALL_BOOKS } from "../queries"
+import { useEffect, useState } from "react"
+import { ALL_BOOKS, BOOK_ADDED_SUB} from "../queries"
 
 // leaving useState empty because on the server it looks for undefiend and thus returns all the books
 // it is not a mistake but deliberately written
 const Books = (props) => {
   const [selectedGenre, setSelectedGenre] = useState()
-  const { data, loading } = useQuery(ALL_BOOKS, {
+  const { subscribeToMore, ...result } = useQuery(ALL_BOOKS, {
     variables: { genre: selectedGenre }
   })
 
-  if (!props.show || loading) {
-    return null
-  }
+  useEffect(() => {
+    if (result.data) {
+      const unsubscribe = subscribeToMore({
+        document: BOOK_ADDED_SUB,
+        variables: {},
+        updateQuery: (prev, { subscriptionData }) => {
+          if (!subscriptionData.data) return prev
+          const newBook = subscriptionData.data.bookAdded
+          return {
+            allBooks: [newBook, ...prev.allBooks]
+          }
+        }
+      })
+      return () => unsubscribe()
+    }
+  }, [subscribeToMore])
 
+  if (!props.show) {
+    return null
+  } 
 
   return (
     <div>
@@ -26,7 +42,7 @@ const Books = (props) => {
             <th>author</th>
             <th>published</th>
           </tr>
-          {data.allBooks.map((a) => (
+          {!result.loading && result.data.allBooks.map((a) => (
             <tr key={a.id}>
               <td>{a.title}</td>
               <td>{a.author.name}</td>

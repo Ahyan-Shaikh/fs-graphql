@@ -2,11 +2,9 @@ import { useQuery, skipToken } from "@apollo/client/react"
 import { ALL_BOOKS } from "../queries"
 
 const Recommend = ({ show, user }) => {
-
-  const { data } = useQuery(ALL_BOOKS, user ? {
+  const { data, loading } = useQuery(ALL_BOOKS, user ? {
     variables: { genre: user?.favoriteGenre },
   }: skipToken )
-
 
   if (!show) {
     return null
@@ -23,7 +21,7 @@ const Recommend = ({ show, user }) => {
             <th>author</th>
             <th>published</th>
           </tr> 
-          { data && data.allBooks.map(b => (
+          { !loading && data?.allBooks.map(b => (
             <tr key={b.id}>
               <td>{b.title}</td>
               <td>{b.author.name}</td>

@@ -21,9 +21,10 @@ const typeDefs = /* GraphQL */ `
   }
 
   type Author {
-    name: String!
-    born: Int
     id: ID!
+    born: Int
+    name: String!
+    bookCount: Int
   }
 
   #Queries and mutations
@@ -55,6 +56,11 @@ const typeDefs = /* GraphQL */ `
 
     #test
     _resetDatabase: Boolean
+  }
+
+  #subscriptions
+  type Subscription {
+    bookAdded: Book!
   }
 `
 

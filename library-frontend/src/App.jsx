@@ -3,10 +3,11 @@ import Authors from './components/Authors'
 import Books from './components/Books'
 import NewBook from './components/NewBook'
 import LoginForm from './components/LoginForm'
-import { skipToken, useApolloClient, useQuery } from '@apollo/client/react'
+import { skipToken, useApolloClient, useQuery, useSubscription } from '@apollo/client/react'
 import Recommend from './components/Recommend'
 import Notification from './components/Notification'
-import { LOGGED_USER } from './queries'
+import { BOOK_ADDED_SUB, LOGGED_USER } from './queries'
+import { addBookToCache } from './utils/apolloCache'
 
 const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
@@ -14,6 +15,14 @@ const App = () => {
   const [page, setPage] = useState('authors')
   const client = useApolloClient()
   const loggedInUser = useQuery(LOGGED_USER, token ? {} : skipToken )
+
+  useSubscription(BOOK_ADDED_SUB, {
+    onData: ({ data }) => {
+      addBookToCache(client.cache, data.data.bookAdded)
+      window.alert(`Added the book "${data.data.bookAdded.title}"`)
+
+    }
+  })
 
   const onLogout = () => {
     setToken(null)
